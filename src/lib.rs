@@ -2,19 +2,13 @@ use market_datatypes::{OrderId, Price, Side};
 use std::collections::{HashMap, VecDeque};
 
 pub trait Order: UniqueOrderId {
-    const DATA_VARIATION: DataVariation;
     fn price(&self) -> i64;
     fn qty(&self) -> i64;
     fn side(&self) -> Side;
 }
 
 pub trait UniqueOrderId {
-    fn order_id(&self) -> u64;
-}
-
-pub enum DataVariation {
-    Level1,
-    Level2,
+    fn unique_order_id(&self) -> u64;
 }
 
 pub struct OrderBook<O: Order> {
@@ -40,6 +34,7 @@ impl<O: Order> From<&O> for PriceQty {
         }
     }
 }
+
 
 impl<O: Order> OrderBook<O> {
     pub fn order_book_id(&self) -> u64 {
@@ -78,12 +73,11 @@ impl<O: Order> OrderBook<O> {
         })
     }
 
-    pub fn add(&mut self, order: O) -> PriceQty {
+    pub fn add(&mut self, order: O) {
         let side = order.side();
         match self.mut_price_level(&order.price(), &side) {
             Ok(level) => level.add(order),
             Err(idx) => {
-                let ret = (&order).into();
                 match side {
                     Side::Buy => self
                         .bid_orders
@@ -92,16 +86,14 @@ impl<O: Order> OrderBook<O> {
                         .ask_orders
                         .insert(idx, PriceLevel::new_with_order(order)),
                 };
-                ret
             }
         }
     }
 
     pub fn remove(&mut self, order: impl UniqueOrderId) -> Result<(), ()> {
-        let (price, side) = self.order_lookup.get(&order.order_id()).unwrap();
-        let (price, side) = (*price, *side);
+        let (price, side) = self.order_lookup.remove(&order.unique_order_id()).unwrap();
         match self.mut_price_level(&price, &side) {
-            Ok(level) => level.remove(order.order_id()),
+            Ok(level) => level.remove(order.unique_order_id()),
             Err(_idx) => return Err(()),
         };
         Ok(())
@@ -127,19 +119,14 @@ impl<O: Order> PriceLevel<O> {
             qty: order.qty(),
             order_stack: {
                 let mut map = HashMap::with_capacity(1000);
-                map.insert(order.order_id(), order);
+                map.insert(order.unique_order_id(), order);
                 map
             },
         }
     }
-    fn add(&mut self, o: O) -> PriceQty {
+    fn add(&mut self, o: O) {
         self.qty += o.qty();
-        let n = self.order_stack.insert(o.order_id(), o);
-        assert!(n.is_none());
-        PriceQty {
-            price: self.price,
-            qty: self.qty,
-        }
+        self.order_stack.insert(o.unique_order_id(), o);
     }
     fn remove(&mut self, id: OrderId) -> Option<O> {
         match self.order_stack.remove(&id) {
@@ -150,27 +137,4 @@ impl<O: Order> PriceLevel<O> {
             None => None,
         }
     }
-    fn replace(&mut self, o: O) -> Option<O> {
-        self.qty += o.qty();
-        if let Some(removed) = self.order_stack.insert(o.order_id(), o) {
-            self.qty -= removed.qty();
-            Some(removed)
-        } else {
-            None
-        }
-    }
-    // use it for executions
-    fn reduce_qty(&mut self, order_id: OrderId) -> Result<(), ()> {
-        if let Some(ord) = self.order_stack.get_mut(&order_id) {
-            self.qty -= ord.qty();
-            Ok(())
-        } else {
-            Err(())
-        }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    fn order_book() {}
 }
