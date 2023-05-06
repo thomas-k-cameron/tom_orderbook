@@ -1,9 +1,21 @@
-// automatically generated
-#[macro_use]
-pub(crate) mod from_btree;
+#[macro_export]
+macro_rules! impl_message {
+    (
+        name: $name:ident $char:literal;
+        pub timestamp: $_:ty,
+        $ ( pub $field:ident: $dt:ty, ) *
+    ) => {
+        use chrono::NaiveDateTime;
 
-mod symbol;
-pub use symbol::Symbol;
+        impl_message!(set_tag @ $name, $char);
+    };
+    (set_tag @ $name:ident, $char:literal) => {
+        impl $name {
+            pub const TAG: char = $char;
+        }
+    };
+}
+
 
 mod unique_id;
 pub use unique_id::UniqueId;

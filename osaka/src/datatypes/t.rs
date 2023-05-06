@@ -41,7 +41,7 @@ impl TryFrom<&str> for SecondTag {
         tag_guard!('T', s);
         let mut iter = s.split(",").skip(1);
         let second = FromStr::from_str(iter.next().ok_or(())?).ok().ok_or(())?;
-        let timestamp = NaiveDateTime::from_timestamp(second, 0);
+        let timestamp = NaiveDateTime::from_timestamp_opt(second, 0).unwrap();
         Ok(Self { timestamp, second })
     }
 }
