@@ -1,0 +1,8 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "./databento-mbo/Cargo.toml",
+        "./databento-mbo/Cargo.toml",
+        "./databento-mbo/Cargo.toml",
+        "./jpx_mbo_orderbook/Cargo.toml"
+    ]
+}
