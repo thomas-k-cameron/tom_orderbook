@@ -35,6 +35,11 @@ impl<O: Order> From<&O> for PriceQty {
     }
 }
 
+struct TickResult<'a> {
+    add: &'a [PriceQty],
+    replaced: &'a [PriceQty],
+}
+
 
 impl<O: Order> OrderBook<O> {
     pub fn order_book_id(&self) -> u64 {

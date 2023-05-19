@@ -282,6 +282,7 @@ dependencies = [
  "market_datatypes",
  "serde",
  "serde_json",
+ "tom_orderbook",
 ]
 
 [[package]]
