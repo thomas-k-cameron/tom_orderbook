@@ -1,4 +1,4 @@
-use market_datatypes::{OrderId, Price, Side};
+use market_datatypes::{OrderId, OrderPrice, Price, Side};
 use std::{
     collections::{HashMap, VecDeque},
     ops::Deref,
@@ -7,21 +7,37 @@ use std::{
 /// Order that bridges between the origianl order and the order within the order book
 pub struct MakerOrder {
     pub id: u64,
-    pub price: i64,
+    pub price: OrderPrice<i64>,
     pub qty: i64,
     pub side: Side,
 }
 
 pub struct PriceQty {
-    price: i64,
+    price: OrderPrice<i64>,
     qty: i64,
 }
 
+#[derive(Default)]
 pub struct PriceLevel {
     order_stack: HashMap<u64, MakerOrder>,
     insertion_order: Vec<u64>,
-    pub(crate) price: i64,
+    pub(crate) price: OrderPrice<i64>,
     qty: i64,
+}
+impl PriceLevel {
+    pub fn price_min_if_market(&self) -> i64 {
+        if let OrderPrice::Limit(i) = self.price {
+            i
+        } else {
+            i64::MIN
+        }
+    }
+    pub fn is_market_order_stack(&self) -> bool {
+        matches!(self.price, OrderPrice::Market)
+    }
+    pub fn is_limit_order_stack(&self) -> bool {
+        matches!(self.price, OrderPrice::Limit(_))
+    }
 }
 
 impl PriceLevel {
@@ -77,6 +93,7 @@ impl PriceLevel {
     }
 }
 
+#[derive(Default)]
 pub struct OrderBook {
     order_book_id: u64,
     /// stack for ask orders
@@ -84,7 +101,9 @@ pub struct OrderBook {
     /// stack for bid orders
     bid_orders: VecDeque<PriceLevel>,
     /// allows you to look up the location of the order by it's id
-    order_lookup: HashMap<u64, (i64, Side)>,
+    order_lookup: HashMap<u64, (OrderPrice<i64>, Side)>,
+    ask_market_orders: PriceLevel,
+    bid_market_orders: PriceLevel,
 }
 
 impl OrderBook {
@@ -93,23 +112,32 @@ impl OrderBook {
     }
 
     pub fn new(order_book_id: u64) -> Self {
-        Self {
-            order_book_id,
-            ask_orders: Default::default(),
-            bid_orders: Default::default(),
-            order_lookup: Default::default(),
-        }
+        let mut data: Self = Default::default();
+        data.order_book_id = order_book_id;
+        data
     }
 
-    fn mut_price_level(&mut self, price: &i64, side: &Side) -> Result<&mut PriceLevel, usize> {
-        let stack = match side {
-            Side::Buy => &mut self.ask_orders,
-            Side::Sell => &mut self.bid_orders,
-        };
-        let item = stack.binary_search_by(|i| i.price.cmp(&price));
-        match item {
-            Ok(idx) => Ok(&mut stack[idx]),
-            Err(idx) => Err(idx),
+    fn mut_price_level(
+        &mut self,
+        price: &OrderPrice<i64>,
+        side: &Side,
+    ) -> Result<&mut PriceLevel, usize> {
+        match price {
+            OrderPrice::Limit(price) => {
+                let stack = match side {
+                    Side::Buy => &mut self.ask_orders,
+                    Side::Sell => &mut self.bid_orders,
+                };
+                let item = stack.binary_search_by(|i| i.price.price_min_if_market().cmp(&price));
+                match item {
+                    Ok(idx) => Ok(&mut stack[idx]),
+                    Err(idx) => Err(idx),
+                }
+            }
+            OrderPrice::Market => match side {
+                Side::Buy => Ok(&mut self.ask_market_orders),
+                Side::Sell => Ok(&mut self.bid_market_orders),
+            },
         }
     }
 
@@ -162,6 +190,13 @@ impl OrderBook {
 }
 
 pub struct UniqueOrderId(u64);
+
+impl UniqueOrderId {
+    pub fn new(i: u64) -> Self {
+        Self(i)
+    }
+}
+
 impl From<u64> for UniqueOrderId {
     fn from(value: u64) -> Self {
         UniqueOrderId(value)

@@ -1,6 +1,6 @@
 use market_datatypes::{Price, OrderPrice};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TradeLog {
     /// price the order was executed at
     /// TRADEPRICE/PRICE_DEAL
