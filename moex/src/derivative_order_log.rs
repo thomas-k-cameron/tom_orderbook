@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 
-use tom_orderbook::{TomsOrder, Order, UniqueOrderId};
+use tom_orderbook::{MakerOrder, Order, UniqueOrderId};
 
 pub use crate::crate_prelude::*;
 
@@ -67,7 +67,7 @@ impl DerivativeOrderLog {
     }
 }
 
-impl TryFrom<DerivativeOrderLog> for TomsOrder<OrderPrice, i64> {
+impl TryFrom<DerivativeOrderLog> for MakerOrder<OrderPrice, i64> {
     type Error = Infallible;
     fn try_from(value: DerivativeOrderLog) -> Result<Self, Self::Error> {
         Ok(Self {

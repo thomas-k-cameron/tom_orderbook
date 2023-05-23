@@ -17,7 +17,7 @@ pub trait Execution {
 }
 
 /// Order that bridges between the origianl order and the order within the order book
-pub struct TomsOrder {
+pub struct MakerOrder {
     pub id: u64,
     pub price: i64,
     pub qty: i64,
@@ -30,14 +30,14 @@ pub struct PriceQty {
 }
 
 pub struct PriceLevel {
-    order_stack: HashMap<OrderId, TomsOrder>,
+    order_stack: HashMap<OrderId, MakerOrder>,
     insertion_order: Vec<OrderId>,
     pub(crate) price: i64,
     qty: i64,
 }
 
 impl PriceLevel {
-    pub fn new_with_order(order: TomsOrder) -> Self {
+    pub fn new_with_order(order: MakerOrder) -> Self {
         Self {
             price: order.price,
             qty: order.qty,
@@ -49,12 +49,12 @@ impl PriceLevel {
             },
         }
     }
-    pub fn add(&mut self, o: TomsOrder) {
+    pub fn add(&mut self, o: MakerOrder) {
         self.qty += o.qty;
         self.insertion_order.push(o.id);
         self.order_stack.insert(o.id, o);
     }
-    pub fn remove(&mut self, id: OrderId) -> Option<TomsOrder> {
+    pub fn remove(&mut self, id: OrderId) -> Option<MakerOrder> {
         match self.order_stack.remove(&id) {
             Some(i) => {
                 self.qty -= i.qty;
@@ -79,7 +79,7 @@ impl PriceLevel {
         }
     }
     /// iterate maker orders
-    pub fn iter_orders(&self) -> impl Iterator<Item = (&OrderId, &TomsOrder)> {
+    pub fn iter_orders(&self) -> impl Iterator<Item = (&OrderId, &MakerOrder)> {
         self.insertion_order
             .iter()
             .filter_map(|id| match self.order_stack.get(id) {
@@ -143,7 +143,7 @@ impl OrderBook {
         iter
     }
 
-    pub fn add(&mut self, order: TomsOrder) {
+    pub fn add(&mut self, order: MakerOrder) {
         let side = order.side;
         match self.mut_price_level(&order.price, &side) {
             Ok(level) => level.add(order),
@@ -166,7 +166,7 @@ impl OrderBook {
         Ok(())
     }
 
-    pub fn replace(&mut self, add: TomsOrder, remove: impl UniqueOrderId) -> Result<(), ()> {
+    pub fn replace(&mut self, add: MakerOrder, remove: impl UniqueOrderId) -> Result<(), ()> {
         self.remove(remove)?;
         self.add(add);
         Ok(())
