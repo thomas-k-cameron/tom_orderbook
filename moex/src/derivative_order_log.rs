@@ -1,3 +1,7 @@
+use std::convert::Infallible;
+
+use tom_orderbook::{TomsOrder, Order, UniqueOrderId};
+
 pub use crate::crate_prelude::*;
 
 #[derive(Debug)]
@@ -7,7 +11,7 @@ pub struct DerivativeOrderLog {
     /// BUYSELL/TYPE
     pub side: Side,
     /// ORDERNO | ID
-    pub id: i64,
+    pub id: u64,
     pub action: Action,
     pub price: OrderPrice,
     pub volume: i64,
@@ -28,8 +32,8 @@ impl DerivativeOrderLog {
             "S" => Side::Sell,
             _ => return None,
         };
-        let moment = NaiveDateTime::parse_from_str(iter.next()?, timestamp_fmt).ok()?;
-        let id = iter.next()?.parse::<i64>().ok()?;
+        let timestamp = NaiveDateTime::parse_from_str(iter.next()?, timestamp_fmt).ok()?;
+        let id = iter.next()?.parse().ok()?;
         let action_byte = iter.next()?;
         let price = {
             let decimal = iter.next()?.parse::<f64>();
@@ -57,9 +61,27 @@ impl DerivativeOrderLog {
             action,
             price,
             volume,
-            timestamp: moment,
+            timestamp,
             id,
         })
+    }
+}
+
+impl TryFrom<DerivativeOrderLog> for TomsOrder<OrderPrice, i64> {
+    type Error = Infallible;
+    fn try_from(value: DerivativeOrderLog) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: value.id,
+            price: value.price,
+            qty: value.volume,
+            side: value.side,
+        })
+    }
+}
+
+impl UniqueOrderId for DerivativeOrderLog {
+    fn unique_order_id(&self) -> u64 {
+        self.id
     }
 }
 

@@ -497,6 +497,7 @@ name = "tom_orderbook"
 version = "0.1.0"
 dependencies = [
  "market_datatypes",
+ "num-traits",
 ]
 
 [[package]]

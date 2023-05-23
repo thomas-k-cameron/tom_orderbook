@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 market_datatypes = { path = "./market_datatypes" }
+num-traits = "0.2.15"
 
 [workspace]
 members = ["./market_datatypes", "./moex", "./osaka", "./databento-mbo"]

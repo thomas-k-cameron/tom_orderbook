@@ -21,7 +21,7 @@ fn order_book() {
     
     for i in file.split("\n") {
         let log  =DerivativeOrderLog::new(i).unwrap();
-        let book = OrderBook::new(hashmap.len() as u64);
+        let mut book = OrderBook::new(hashmap.len() as u64);
         hashmap.insert(log.name, hashmap.len());
         match log.action {
             crate::Action::Add => book.add(log),

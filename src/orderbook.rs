@@ -1,5 +1,6 @@
 use crate::*;
 
+
 pub struct OrderBook<O: Order> {
     order_book_id: u64,
     /// stack for ask orders
@@ -37,6 +38,7 @@ impl<O: Order> OrderBook<O> {
         }
     }
 
+    /// iterates the price level with PriceQty
     pub fn iter_orders<'a>(&'a self, side: &Side) -> impl Iterator<Item = PriceQty> + 'a {
         let iter = match side {
             Side::Buy => self.bid_orders.iter(),
@@ -45,27 +47,37 @@ impl<O: Order> OrderBook<O> {
         iter.map(|i| i.price_qty())
     }
 
+    /// iterates the price level
+    pub fn iter_price_level<'a>(&'a self, side: &Side) -> impl Iterator<Item = &PriceLevel<O>> + 'a {
+        let iter = match side {
+            Side::Buy => self.bid_orders.iter(),
+            Side::Sell => self.ask_orders.iter(),
+        };
+        iter
+    }
+
     pub fn add(&mut self, order: O) {
         let side = order.side();
         match self.mut_price_level(&order.price(), &side) {
             Ok(level) => level.add(order),
             Err(idx) => {
+                let val = PriceLevel::new_with_order(order);
                 match side {
                     Side::Buy => self
                         .bid_orders
-                        .insert(idx, PriceLevel::new_with_order(order)),
+                        .insert(idx, val),
                     Side::Sell => self
                         .ask_orders
-                        .insert(idx, PriceLevel::new_with_order(order)),
+                        .insert(idx, val),
                 };
             }
         }
     }
 
-    pub fn remove(&mut self, order: impl UniqueOrderId) -> Result<(), ()> {
-        let (price, side) = self.order_lookup.remove(&order.unique_order_id()).unwrap();
+    pub fn remove(&mut self, id: impl UniqueOrderId) -> Result<(), ()> {
+        let (price, side) = self.order_lookup.remove(&id.unique_order_id()).unwrap();
         match self.mut_price_level(&price, &side) {
-            Ok(level) => level.remove(order.unique_order_id()),
+            Ok(level) => level.remove(id.unique_order_id()),
             Err(_idx) => return Err(()),
         };
         Ok(())
@@ -76,4 +88,17 @@ impl<O: Order> OrderBook<O> {
         self.add(add);
         Ok(())
     }
+}
+
+impl<O: Order> OrderBook<O> {
+    pub fn update(&mut self, msg: OrderBookUpdate) { 
+        
+    }
+}
+
+pub enum OrderBookUpdate<O: Order, U: UniqueOrderId> {
+    Add(O),
+    Delete(U),
+    Update(O, U),
+    Execution,
 }
