@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 market_datatypes = { path = "./market_datatypes" }
 num-traits = "0.2.15"
+dbn = { git = "https://github.com/databento/dbn.git", tag = "v0.5.1" }
 
 [workspace]
 members = ["./market_datatypes", "./moex", "./osaka", "./databento-mbo"]

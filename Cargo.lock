@@ -496,6 +496,7 @@ dependencies = [
 name = "tom_orderbook"
 version = "0.1.0"
 dependencies = [
+ "dbn",
  "market_datatypes",
  "num-traits",
 ]
