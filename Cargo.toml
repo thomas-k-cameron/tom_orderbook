@@ -3,12 +3,8 @@ name = "tom_orderbook"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-market_datatypes = { path = "./market_datatypes" }
-num-traits = "0.2.15"
-dbn = { git = "https://github.com/databento/dbn.git", tag = "v0.5.1" }
+
 
 [workspace]
-members = ["./market_datatypes", "./moex", "./osaka", "./databento-mbo"]
+members = ["./market_datatypes", "./moex", "./osaka", "./databento-mbo", "./tom_orderbook"]
