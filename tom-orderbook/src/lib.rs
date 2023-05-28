@@ -1,6 +1,7 @@
 use market_datatypes::{OrderId, OrderPrice, Price, Side};
 use std::{
     collections::{HashMap, VecDeque},
+    fs::ReadDir,
     ops::Deref,
 };
 
@@ -67,7 +68,7 @@ impl PriceLevel {
             None => None,
         }
     }
-    // TODO bad name change it
+    // TODO bad name. change it
     pub fn shrink_queue(&mut self) {
         let new = self
             .insertion_order
@@ -182,6 +183,22 @@ impl OrderBook {
         Ok(())
     }
 
+    pub fn change_qty(&mut self, target_id: UniqueOrderId, change_qty: i64) -> Result<(), ()> {
+        if let Some((price, side)) =  self.order_lookup.get(&target_id) {
+            match self.mut_price_level(price, side) {
+                Ok(i) => {
+                    if let Some(mut ord) = i.remove(&target_id) {
+                        ord.qty = change_qty;
+                        i.add(ord);
+                        return Ok(())
+                    }
+                }
+                _ => ()
+            }
+        }
+        Err(())
+    }
+
     pub fn replace(&mut self, add: MakerOrder, remove: UniqueOrderId) -> Result<(), ()> {
         self.remove(&remove)?;
         self.add(add);
@@ -208,4 +225,19 @@ impl Deref for UniqueOrderId {
     fn deref(&self) -> &Self::Target {
         &self.0
     }
+}
+
+pub enum OrderBookUpdate {
+    ChangeQty {
+        target_order: UniqueOrderId,
+        new_qty: i64,
+    },
+    ChangePrice {
+        new_price: i64,
+        target_order: UniqueOrderId,
+    },
+    Delete {
+        target_order: UniqueOrderId,
+    },
+    Add(MakerOrder),
 }

@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-
+tom_orderbook = {path = "../tom_orderbook"}
 market_datatypes = {path = "../market_datatypes"}
 chrono = { version = "0.4", features = ["serde"]}
 serde = { version = "1", features = ["derive"] }
